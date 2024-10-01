@@ -1,1 +1,1 @@
-# hse-miem-aap-course
+# hse-miem-course
