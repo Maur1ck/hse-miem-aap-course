@@ -1,62 +1,89 @@
 #include <stdio.h>
-#include <stdbool.h>
+#include <string.h>
+#include <ctype.h>
+#include <limits.h>
 
 #define nmax 20
 #define lmax 100
 
-void extract_substring(const char *start_ptr, const char *end_ptr, char *result) {
-    char *res_ptr = result;
-    while (start_ptr < end_ptr) {
-        *res_ptr = *start_ptr;
-        res_ptr++;
-        start_ptr++;
-    }
-    *res_ptr = '\0';
-}
+int task1(char arr[nmax][lmax], int k, char subs[nmax * lmax][lmax], int subs_origin[]) {
+    int col = 0;
+    for (int i = 0; i < k; i++) {
+        char c = arr[i][0];
+        for (int j = 0; c != '\n' && c != '\0'; j++) {
+            c = arr[i][j];
+            char s = arr[i][j + 1];
 
-int is_latin_letter(char c) {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-}
-
-void task1(char strs[nmax][lmax], int k, int *num_of_substrs) {
-    int i, j;
-    char new_strs[nmax][lmax], test[nmax][lmax], *p1, *p2;
-    bool Flag = false;
-
-    for (i = 0; i < k; i++) {
-        p1 = NULL;
-        j = 0;
-
-        for (p2 = strs[i]; *p2; p2++) {
-            if (is_latin_letter(*p2) && p1 == NULL) {
-                p1 = p2;
-            }
-            if (!is_latin_letter(*p2)) {
-                Flag = true;
-            }
-            if (is_latin_letter(*p2) && Flag) {
-                extract_substring(p1 + 1, p2, new_strs[j]);
-                (*num_of_substrs)++;
-                j++;
-                Flag = false;
-                p1 = p2;
-            } else {
-                if (!Flag) {
-                    p1 = p2;
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+                for (int l = j + 2; s != '\n' && s != '\0'; l++) {
+                    s = arr[i][l];
+                    if ((s >= 'A' && s <= 'Z') || (s >= 'a' && s <= 'z')) {
+                        int p;
+                        for (p = 0; p < l - j - 1; p++) {
+                            subs[col][p] = arr[i][j + 1 + p];
+                        }
+                        subs[col][p] = '\0';
+                        subs_origin[col] = i;
+                        col++;
+                    }
                 }
             }
+        }
+    }
+    return col;
+}
 
+int task2(char substrs[lmax][lmax], int col) {
+    int found = -1, min_digits = INT_MAX;
+
+    for (int i = 0; i < col; i++) {
+        int temp = 0;
+        char *str_ptr = substrs[i];
+
+        while (*str_ptr) str_ptr++;
+
+        str_ptr--;
+
+        while (isdigit(*str_ptr)) {
+            temp++;
+            str_ptr--;
+        }
+
+        if (temp < min_digits && temp != 0) {
+            min_digits = temp;
+            found = i;
         }
     }
 
-    for (i = 0; i < *num_of_substrs; i++) {
-        printf("%s\n", new_strs[i]);
+    return found;
+}
+
+void task3(char str[lmax]) {
+    char result[lmax * 2];
+    int j = 0;
+
+    for (int i = 0; str[i] != '\0';) {
+        if ((unsigned char)str[i] >= 0xD0 && (unsigned char)str[i] <= 0xD1) {
+            result[j++] = str[i];
+            result[j++] = str[i + 1];
+            result[j++] = str[i];
+            result[j++] = str[i + 1];
+            i += 2;
+        } else {
+            result[j++] = str[i++];
+        }
     }
+
+    result[j] = '\0';
+    strcpy(str, result);
 }
 
 int main() {
-    int temp, k, i, num_of_substrs = 0;
+    int temp, k;
     char strs[nmax][lmax];
+    char subs[nmax * lmax][lmax];
+    int subs_origin[nmax * lmax];
+    int col = 0;
 
     printf("Лабораторная работа №4 Мишин Михаил БИТ241\n");
     printf("Задание 1 вариант 6\n");
@@ -64,18 +91,44 @@ int main() {
     do {
         printf("Введите количество строк k: ");
         temp = scanf("%d", &k);
-    } while (temp != 1 || k <= 0 || k > lmax);
+    } while (temp != 1 || k <= 0 || k > nmax);
     while (getchar() != '\n');
 
     printf("Введите строки:\n");
-    for (i = 0; i < k; i++) {
+    for (int i = 0; i < k; i++) {
         printf("Строка %d: ", i + 1);
-        gets(strs[i]);
+        fgets(strs[i], lmax, stdin);
+        strs[i][strcspn(strs[i], "\n")] = '\0';
     }
 
-    task1(strs, k, &num_of_substrs);
+    col = task1(strs, k, subs, subs_origin);
 
-    printf("Количество подстрок: %d\n", num_of_substrs);
+    if (col == 0) {
+        printf("Такие подстроки не найдены.\n");
+    } else {
+        printf("Найдено %d подстрок:\n", col);
+        for (int i = 0; i < col; i++) {
+            printf("Подстрока: %s из строки %d\n", subs[i], subs_origin[i] + 1);
+        }
+
+        printf("\nЗадание 2 вариант 8\n");
+
+        int result = task2(subs, col);
+
+        if (result == -1) {
+            printf("Не найдены подстроки с цифрами в конце.\n");
+        } else {
+            printf("Подстрока с минимальным количеством цифр в конце: %s из строки %d\n",
+                   subs[result], subs_origin[result] + 1);
+
+            printf("\nЗадание 3 вариант 7\n");
+
+            printf("Исходная строка: %s\n", strs[subs_origin[result]]);
+            task3(strs[subs_origin[result]]);
+            printf("Преобразованная строка: %s\n", strs[subs_origin[result]]);
+        }
+
+    }
 
     return 0;
 }
